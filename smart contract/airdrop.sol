@@ -16,6 +16,15 @@ contract Ownable {
     function isOwner() public view returns (bool) {
         return msg.sender == _owner;
     }
+
+    function check_owner() public view returns (address) {
+        return _owner;
+    }
+
+    function transfer_ownership(address newOwner) public onlyOwner returns (bool){
+        _owner = newOwner;
+         return true;
+    }
 }
 interface ERC20 {
     function transfer(address _to, uint256 _value) external returns (bool);
