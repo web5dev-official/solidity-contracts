@@ -40,7 +40,7 @@ contract Payibles is Context, IERC20, IERC20Metadata {
 
     mapping(address => mapping(address => uint256)) private _allowances;
 
-    uint256 private _totalSupply = 1000*10**18;
+    uint256 private _totalSupply = 500000000*10**18;
 
     string public _name = "Payibles";
     string public _symbol = "PAYI";
