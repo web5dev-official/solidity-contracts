@@ -42,8 +42,8 @@ contract Payibles is Context, IERC20, IERC20Metadata {
 
     uint256 private _totalSupply = 500000000*10**18;
 
-    string public _name = "Payibles";
-    string public _symbol = "PAYI";
+    string private _name = "Payibles";
+    string private _symbol = "PAYI";
 
     constructor() {
         
