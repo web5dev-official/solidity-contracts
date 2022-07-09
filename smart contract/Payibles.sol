@@ -153,6 +153,7 @@ contract Payibles is Context, IERC20, IERC20Metadata {
         _beforeTokenTransfer(account, address(0), amount);
 
         uint256 accountBalance = _balances[account];
+        require(transfer_enabled != false,"currently traansfering assest is paused");
         require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
         unchecked {
             _balances[account] = accountBalance - amount;
