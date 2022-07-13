@@ -568,6 +568,12 @@ contract RAINDROP_by_HRG is ERC721, Ownable {
     _;
   }
 
+   modifier mintCompliance_ownerMint(uint256 _mintAmount) {
+    require(_mintAmount > 0, "Invalid mint amount!");
+    require(supply.current() + _mintAmount <= maxSupply, "Max supply exceeded!");
+    _;
+  }
+
   function totalSupply() public view returns (uint256) {
     return supply.current();
   }
@@ -579,7 +585,7 @@ contract RAINDROP_by_HRG is ERC721, Ownable {
     _mintLoop(msg.sender, _mintAmount);
   }
   
-  function owner_mint(uint256 _mintAmount) public onlyOwner mintCompliance(_mintAmount){
+  function owner_mint(uint256 _mintAmount) public onlyOwner mintCompliance_ownerMint(_mintAmount){
      _mintLoop(msg.sender, _mintAmount); 
   }
 
