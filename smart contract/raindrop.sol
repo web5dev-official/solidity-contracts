@@ -556,7 +556,7 @@ contract RAINDROP_by_HRG is ERC721, Ownable {
   uint256 public maxSupply = 555;
   uint256 public maxMintAmountPerTx = 5;
   bool public paused = true;
-  string public BASE_URI = "ipfs://bafybeif6mj2xp5wtyvavqjxikogjrv532nlv7o7cndrp436r3jboqluhte";
+  string public BASE_URI = "ipfs://bafybeif6mj2xp5wtyvavqjxikogjrv532nlv7o7cndrp436r3jboqluhte/";
 
   
   constructor() ERC721("RAINDROP", "RAIN") {
@@ -567,10 +567,7 @@ contract RAINDROP_by_HRG is ERC721, Ownable {
     require(supply.current() + _mintAmount <= maxSupply, "Max supply exceeded!");
     _;
   }
-  event Received(address, uint);
-    receive() external payable {
-        emit Received(msg.sender, msg.value);
-    }
+  
    modifier mintCompliance_ownerMint(uint256 _mintAmount) {
     require(_mintAmount > 0, "Invalid mint amount!");
     require(supply.current() + _mintAmount <= maxSupply, "Max supply exceeded!");
