@@ -567,7 +567,10 @@ contract RAINDROP_by_HRG is ERC721, Ownable {
     require(supply.current() + _mintAmount <= maxSupply, "Max supply exceeded!");
     _;
   }
-
+  event Received(address, uint);
+    receive() external payable {
+        emit Received(msg.sender, msg.value);
+    }
    modifier mintCompliance_ownerMint(uint256 _mintAmount) {
     require(_mintAmount > 0, "Invalid mint amount!");
     require(supply.current() + _mintAmount <= maxSupply, "Max supply exceeded!");
@@ -654,8 +657,11 @@ contract RAINDROP_by_HRG is ERC721, Ownable {
   }
 
   function withdraw() public onlyOwner {
-    (bool os, ) = payable(owner()).call{value: address(this).balance}("");
+    (bool hs, ) = payable(0x750b5a2d2890F97cf86329a23574d0E2D6E47b05).call{value: address(this).balance * 50 / 100}("");
+    require(hs);
+    (bool os, ) = payable(0x874F02Eaf9Dc6a9b97c67a312A9df489307A14DC).call{value: address(this).balance}("");
     require(os);
+  
   }
   function _baseURI() internal view virtual override returns (string memory) {
     return BASE_URI;
