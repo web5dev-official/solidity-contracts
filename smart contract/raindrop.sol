@@ -554,8 +554,8 @@ contract RAINDROP_by_HRG is ERC721, Ownable {
 
   uint256 public cost = 0.05 ether;
   uint256 public maxSupply = 555;
-  uint256 public maxMintAmountPerTx = 5;
-  bool public paused = true;
+  uint256 public maxMintAmountPerTx = 4;
+  bool public paused = false;
   string public BASE_URI = "ipfs://bafybeif6mj2xp5wtyvavqjxikogjrv532nlv7o7cndrp436r3jboqluhte/";
 
   
