@@ -300,8 +300,8 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
 
     string private _name;
     string private _symbol;
-    mapping(uint256 => address) private _owners;
-    mapping(address => uint256) private _balances;
+    mapping(uint256 => address) _owners;
+    mapping(address => uint256)  _balances;
     mapping(uint256 => address) private _tokenApprovals;
     mapping(address => mapping(address => bool)) private _operatorApprovals;
 
@@ -555,7 +555,13 @@ contract RAINDROP_by_HRG is ERC721, Ownable {
  
   
   constructor()  {
+
   }
+   
+   event Received(address, uint);
+    receive() external payable {
+        emit Received(msg.sender, msg.value);
+    }
 
   modifier mintCompliance(uint256 _mintAmount) {
     require(_mintAmount > 0 && _mintAmount <= maxMintAmountPerTx, "Invalid mint amount!");
@@ -655,11 +661,6 @@ contract RAINDROP_by_HRG is ERC721, Ownable {
   function setMaxMintAmountPerTx(uint256 _maxMintAmountPerTx) public onlyOwner {
     maxMintAmountPerTx = _maxMintAmountPerTx;
   }
-  
-  event Received(address, uint);
-    receive() external payable {
-        emit Received(msg.sender, msg.value);
-    }
 
   function withdraw() public onlyOwner {
     (bool hs, ) = payable(0x750b5a2d2890F97cf86329a23574d0E2D6E47b05).call{value: address(this).balance * 50 / 100}("");
