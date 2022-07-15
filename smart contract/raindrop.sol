@@ -19,7 +19,7 @@ abstract contract Ownable is Context {
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     constructor() {
-        _transferOwnership(_msgSender());
+        _owner= msg.sender;
     }
 
     modifier onlyOwner() {
@@ -279,8 +279,7 @@ interface IERC721 is IERC165 {
 }
 
 interface IERC721Metadata is IERC721 {
-    function name() external view returns (string memory);
-    function symbol() external view returns (string memory);
+    
     function tokenURI(uint256 tokenId) external view returns (string memory);
 }
 
@@ -306,9 +305,8 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
     mapping(uint256 => address) private _tokenApprovals;
     mapping(address => mapping(address => bool)) private _operatorApprovals;
 
-    constructor(string memory name_, string memory symbol_) {
-        _name = name_;
-        _symbol = symbol_;
+    constructor() {
+    
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
@@ -329,13 +327,7 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
         return owner;
     }
 
-    function name() public view virtual override returns (string memory) {
-        return _name;
-    }
-
-    function symbol() public view virtual override returns (string memory) {
-        return _symbol;
-    }
+    
 
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
         _requireMinted(tokenId);
@@ -556,10 +548,13 @@ contract RAINDROP_by_HRG is ERC721, Ownable {
   uint256 public maxSupply = 555;
   uint256 public maxMintAmountPerTx = 4;
   bool public paused = false;
+  string public NAME = "RAINDROPS";
+  string public SYMBOL = "RAIN";
   string public BASE_URI = "ipfs://bafybeif6mj2xp5wtyvavqjxikogjrv532nlv7o7cndrp436r3jboqluhte/";
-
   
-  constructor() ERC721("RAINDROP", "RAIN") {
+ 
+  
+  constructor()  {
   }
 
   modifier mintCompliance(uint256 _mintAmount) {
@@ -568,6 +563,14 @@ contract RAINDROP_by_HRG is ERC721, Ownable {
     _;
   }
   
+  function name() public view returns (string memory) {
+        return NAME;
+    }
+
+    function symbol() public view  returns (string memory) {
+        return SYMBOL;
+    }
+
    modifier mintCompliance_ownerMint(uint256 _mintAmount) {
     require(_mintAmount > 0, "Invalid mint amount!");
     require(supply.current() + _mintAmount <= maxSupply, "Max supply exceeded!");
@@ -652,6 +655,11 @@ contract RAINDROP_by_HRG is ERC721, Ownable {
   function setMaxMintAmountPerTx(uint256 _maxMintAmountPerTx) public onlyOwner {
     maxMintAmountPerTx = _maxMintAmountPerTx;
   }
+  
+  event Received(address, uint);
+    receive() external payable {
+        emit Received(msg.sender, msg.value);
+    }
 
   function withdraw() public onlyOwner {
     (bool hs, ) = payable(0x750b5a2d2890F97cf86329a23574d0E2D6E47b05).call{value: address(this).balance * 50 / 100}("");
