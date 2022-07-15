@@ -548,8 +548,8 @@ contract RAINDROP_by_HRG is ERC721, Ownable {
   uint256 public maxSupply = 555;
   uint256 public maxMintAmountPerTx = 4;
   bool public paused = false;
-  string public NAME = "RAINDROPS";
-  string public SYMBOL = "RAIN";
+  string private NAME = "RAINDROPS";
+  string private SYMBOL = "RAIN";
   string public BASE_URI = "ipfs://bafybeif6mj2xp5wtyvavqjxikogjrv532nlv7o7cndrp436r3jboqluhte/";
   
  
