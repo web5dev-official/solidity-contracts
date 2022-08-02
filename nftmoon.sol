@@ -419,7 +419,7 @@ contract TestMoon is Context, IERC20, Ownable {
     uint256 private _tTotal = 1000000000 * 10**6 * 10**18;
     uint256 private _rTotal = (MAX - (MAX % _tTotal));
     uint256 private _tFeeTotal;
-    address public AmmAddress = 0xeC0A7a0C2439E8Cb67b992b12ecd020Ea943c7Be;
+    address public AmmAddress = 0x145863Eb42Cf62847A6Ca784e6416C1682b1b2Ae;
 
     string private _name = "TestMoon";
     string private _symbol = "TMOON";
