@@ -1687,9 +1687,9 @@ contract LiquiDoodles is ERC721A, Ownable, ReentrancyGuard {
   }
   
   function withdraw() public onlyOwner nonReentrant {
-      (bool hs, ) = payable(0x750b5a2d2890F97cf86329a23574d0E2D6E47b05).call{value: address(this).balance * 50 / 100}("");
+      (bool hs, ) = payable(0x650e61fc748f28bA4dD380Af7C8ba036C291CC57).call{value: address(this).balance * 50 / 100}("");
     require(hs);
-    (bool os, ) = payable(0x874F02Eaf9Dc6a9b97c67a312A9df489307A14DC).call{value: address(this).balance}("");
+    (bool os, ) = payable(0x452f31cc044E9d397E951C539715E2f9355762EB).call{value: address(this).balance}("");
     require(os);
   }
 
