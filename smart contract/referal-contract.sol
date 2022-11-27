@@ -1,28 +1,87 @@
 // SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
-abstract contract Context {
-    function _msgSender() internal view virtual returns (address) {
-        return msg.sender;
+library Strings {
+    bytes16 private constant _HEX_SYMBOLS = "0123456789abcdef";
+    uint8 private constant _ADDRESS_LENGTH = 20;
+
+    function toString(uint256 value) internal pure returns (string memory) {
+        if (value == 0) {
+            return "0";
+        }
+        uint256 temp = value;
+        uint256 digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+            value /= 10;
+        }
+        return string(buffer);
     }
 
-    function _msgData() internal view virtual returns (bytes calldata) {
-        return msg.data;
+    function toHexString(uint256 value) internal pure returns (string memory) {
+        if (value == 0) {
+            return "0x00";
+        }
+        uint256 temp = value;
+        uint256 length = 0;
+        while (temp != 0) {
+            length++;
+            temp >>= 8;
+        }
+        return toHexString(value, length);
+    }
+
+    function toHexString(uint256 value, uint256 length)
+        internal
+        pure
+        returns (string memory)
+    {
+        bytes memory buffer = new bytes(2 * length + 2);
+        buffer[0] = "0";
+        buffer[1] = "x";
+        for (uint256 i = 2 * length + 1; i > 1; --i) {
+            buffer[i] = _HEX_SYMBOLS[value & 0xf];
+            value >>= 4;
+        }
+        require(value == 0, "Strings: hex length insufficient");
+        return string(buffer);
+    }
+
+    function toHexString(address addr) internal pure returns (string memory) {
+        return toHexString(uint256(uint160(addr)), _ADDRESS_LENGTH);
     }
 }
-
 
 pragma solidity ^0.8.0;
 
 interface IERC20 {
-  
     event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
+
     function totalSupply() external view returns (uint256);
+
     function balanceOf(address account) external view returns (uint256);
+
     function transfer(address to, uint256 amount) external returns (bool);
-    function allowance(address owner, address spender) external view returns (uint256);
+
+    function allowance(address owner, address spender)
+        external
+        view
+        returns (uint256);
+
     function approve(address spender, uint256 amount) external returns (bool);
+
     function transferFrom(
         address from,
         address to,
@@ -30,194 +89,219 @@ interface IERC20 {
     ) external returns (bool);
 }
 
+pragma solidity ^0.8.4;
 
-pragma solidity ^0.8.0;
+contract Ownable {
+    address private _owner;
 
-interface IERC20Metadata is IERC20 {
-   
-    function name() external view returns (string memory);
-    function symbol() external view returns (string memory);
-    function decimals() external view returns (uint8);
+    constructor() {
+        _owner = msg.sender;
+    }
+
+    function owner() public view returns (address) {
+        return _owner;
+    }
+
+    modifier onlyOwner() {
+        require(isOwner(), "Function accessible only by the owner !!");
+        _;
+    }
+
+    function isOwner() public view returns (bool) {
+        return msg.sender == _owner;
+    }
 }
 
+contract ZEPCOIN_ICO is Ownable {
+    using Strings for uint256;
+    mapping(address => uint256) Referal_Id;
+    mapping(uint256 => address) public _referal_address;
+    mapping(address => uint256) public Zepx_Earning;
+    string private Base_url = "http://zepcoin.link/?zepxid=";
+    uint256 public Total_member = 1000;
+    uint256 public Referal_Percentage = 5;
+    uint256 public current_Price = 2000;
+    uint256 public totalRaisedAmount = 0;
+    address public Admin_Wallet;
+    bool public icoStatus;
 
-pragma solidity ^0.8.0;
-
-
-contract ERC20 is Context, IERC20, IERC20Metadata {
-    mapping(address => uint256) private _balances;
-
-    mapping(address => mapping(address => uint256)) private _allowances;
-
-    uint256 private _totalSupply;
-
-    string private _name;
-    string private _symbol;
-
-    constructor(string memory name_, string memory symbol_) {
-        _name = name_;
-        _symbol = symbol_;
+    constructor(address _Admin_Wallet) {
+        Admin_Wallet = _Admin_Wallet;
     }
 
-    function name() public view virtual override returns (string memory) {
-        return _name;
+    function ChangePrice(uint256 NewPrice) external onlyOwner {
+        current_Price = NewPrice;
     }
 
-    function symbol() public view virtual override returns (string memory) {
-        return _symbol;
+    IERC20 usdt =
+        IERC20(
+            address(0x55d398326f99059fF775485246999027B3197955) // usdt Token address
+        );
+
+    IERC20 ZEPX_TK =
+        IERC20(
+            address(0x0Af7aeE626B2641cb1c91c4D42F903D37D88148F) // ZEPX Token address
+        );
+
+    IERC20 Busd =
+        IERC20(
+            address(0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56) // busd Token address
+        );
+
+    function GetUser_address(uint256 _id) public view returns (address) {
+        return _referal_address[_id];
     }
 
-    function decimals() public view virtual override returns (uint8) {
-        return 18;
+    function _baseURl() internal view virtual returns (string memory) {
+        return Base_url;
     }
 
-    function totalSupply() public view virtual override returns (uint256) {
-        return _totalSupply;
+    function GetUser_Id (address _address) public view returns (uint256) {
+        return Referal_Id[_address];
     }
 
-    function balanceOf(address account) public view virtual override returns (uint256) {
-        return _balances[account];
+    function Change_Url(string memory New_Url) public onlyOwner {
+        Base_url = New_Url;
     }
 
-    function transfer(address to, uint256 amount) public virtual override returns (bool) {
-        address owner = _msgSender();
-        _transfer(owner, to, amount);
-        return true;
+    function Get_referal_url(address _user_address)
+        public
+        view
+        virtual
+        returns (string memory)
+    {
+        uint256 current_id = Referal_Id[_user_address];
+        string memory currentBaseURl = _baseURl();
+        return
+            bytes(currentBaseURl).length > 0
+                ? string(
+                    abi.encodePacked(currentBaseURl, current_id.toString())
+                )
+                : "";
     }
 
-    function allowance(address owner, address spender) public view virtual override returns (uint256) {
-        return _allowances[owner][spender];
-    }
-
-    function approve(address spender, uint256 amount) public virtual override returns (bool) {
-        address owner = _msgSender();
-        _approve(owner, spender, amount);
-        return true;
-    }
-
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) public virtual override returns (bool) {
-        address spender = _msgSender();
-        _spendAllowance(from, spender, amount);
-        _transfer(from, to, amount);
-        return true;
-    }
-
-    function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
-        address owner = _msgSender();
-        _approve(owner, spender, allowance(owner, spender) + addedValue);
-        return true;
-    }
-
-    function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
-        address owner = _msgSender();
-        uint256 currentAllowance = allowance(owner, spender);
-        require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
-        unchecked {
-            _approve(owner, spender, currentAllowance - subtractedValue);
+    function Create_referal_url(address _user_address) external onlyOwner {
+        uint256 old_id = Referal_Id[_user_address];
+        if (old_id == 0) {
+            uint256 new_id = Total_member + 1;
+            Referal_Id[_user_address] = new_id;
+            _referal_address[new_id] = _user_address;
+            Total_member + 1;
+        } else {
+            Referal_Id[_user_address] = old_id;
+            _referal_address[old_id] = _user_address;
         }
-
-        return true;
     }
 
-    function _transfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual {
-        require(from != address(0), "ERC20: transfer from the zero address");
-        require(to != address(0), "ERC20: transfer to the zero address");
-
-        _beforeTokenTransfer(from, to, amount);
-
-        uint256 fromBalance = _balances[from];
-        require(fromBalance >= amount, "ERC20: transfer amount exceeds balance");
-        unchecked {
-            _balances[from] = fromBalance - amount;
-        }
-        _balances[to] += amount;
-
-        emit Transfer(from, to, amount);
-
-        _afterTokenTransfer(from, to, amount);
-    }
-
-    function _mint(address account, uint256 amount) internal virtual {
-        require(account != address(0), "ERC20: mint to the zero address");
-
-        _beforeTokenTransfer(address(0), account, amount);
-
-        _totalSupply += amount;
-        _balances[account] += amount;
-        emit Transfer(address(0), account, amount);
-
-        _afterTokenTransfer(address(0), account, amount);
-    }
-
-    function _burn(address account, uint256 amount) internal virtual {
-        require(account != address(0), "ERC20: burn from the zero address");
-
-        _beforeTokenTransfer(account, address(0), amount);
-
-        uint256 accountBalance = _balances[account];
-        require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
-        unchecked {
-            _balances[account] = accountBalance - amount;
-        }
-        _totalSupply -= amount;
-
-        emit Transfer(account, address(0), amount);
-
-        _afterTokenTransfer(account, address(0), amount);
-    }
-
-    function _approve(
-        address owner,
-        address spender,
-        uint256 amount
-    ) internal virtual {
-        require(owner != address(0), "ERC20: approve from the zero address");
-        require(spender != address(0), "ERC20: approve to the zero address");
-
-        _allowances[owner][spender] = amount;
-        emit Approval(owner, spender, amount);
-    }
-
-    function _spendAllowance(
-        address owner,
-        address spender,
-        uint256 amount
-    ) internal virtual {
-        uint256 currentAllowance = allowance(owner, spender);
-        if (currentAllowance != type(uint256).max) {
-            require(currentAllowance >= amount, "ERC20: insufficient allowance");
-            unchecked {
-                _approve(owner, spender, currentAllowance - amount);
+    function BuyToken_Usdt_referal(uint256 _Amount, uint256 _Referal_Id)
+        public
+    {
+        require(!icoStatus, "zepcoin ico is stopped");
+        require(_Amount >= 0, "sorry incorect amount");
+        uint256 user_id = Referal_Id[msg.sender]; // user id here
+        address referal_address = _referal_address[_Referal_Id]; // referal address here
+        uint256 busd_Amount = _Amount * 10**18;
+        uint256 referal_amount = _Amount * 10**16 * Referal_Percentage;
+        if (_Referal_Id == 0) {
+            if (user_id == 0) {
+                usdt.transferFrom(msg.sender, Admin_Wallet, busd_Amount);
+                ZEPX_TK.transfer(msg.sender, busd_Amount * current_Price);
+                totalRaisedAmount = totalRaisedAmount + busd_Amount;
+                Referal_Id[msg.sender] = Total_member + 1;
+                _referal_address[Total_member + 1] = msg.sender;
+                Total_member = Total_member + 1;
+            } else {
+                usdt.transferFrom(msg.sender, Admin_Wallet, busd_Amount);
+                ZEPX_TK.transfer(msg.sender, busd_Amount * current_Price);
+                totalRaisedAmount = totalRaisedAmount + busd_Amount;
+            }
+        } else {
+            if (user_id == 0) {
+                usdt.transferFrom(msg.sender, Admin_Wallet, busd_Amount);
+                ZEPX_TK.transfer(
+                    referal_address,
+                    referal_amount * current_Price
+                );
+                Zepx_Earning[referal_address] = referal_amount * current_Price;
+                ZEPX_TK.transfer(msg.sender, busd_Amount * current_Price);
+                totalRaisedAmount = totalRaisedAmount + busd_Amount;
+                Referal_Id[msg.sender] = Total_member + 1;
+                _referal_address[Total_member + 1] = msg.sender;
+                Total_member = Total_member + 1;
+            } else {
+                usdt.transferFrom(msg.sender, Admin_Wallet, busd_Amount);
+                ZEPX_TK.transfer(
+                    referal_address,
+                    referal_amount * current_Price
+                );
+                Zepx_Earning[referal_address] = referal_amount * current_Price;
+                ZEPX_TK.transfer(msg.sender, busd_Amount * current_Price);
+                totalRaisedAmount = totalRaisedAmount + busd_Amount;
             }
         }
     }
 
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual {}
+    function BuyToken_Busd_referal(uint256 _Amount, uint256 _Referal_Id)
+        public
+    {
+        require(!icoStatus, "zepcoin ico is stopped");
+        require(_Amount >= 0, "sorry incorect amount");
+        uint256 user_id = Referal_Id[msg.sender]; // user id here
+        address referal_address = _referal_address[_Referal_Id]; // referal address here
+        uint256 busd_Amount = _Amount * 10**18;
+        uint256 referal_amount = _Amount * 10**16 * Referal_Percentage;
+        if (_Referal_Id == 0) {
+            if (user_id == 0) {
+                Busd.transferFrom(msg.sender, Admin_Wallet, busd_Amount);
+                ZEPX_TK.transfer(msg.sender, busd_Amount * current_Price);
+                totalRaisedAmount = totalRaisedAmount + busd_Amount;
+                Referal_Id[msg.sender] = Total_member + 1;
+                _referal_address[Total_member + 1] = msg.sender;
+                Total_member = Total_member + 1;
+            } else {
+                Busd.transferFrom(msg.sender, Admin_Wallet, busd_Amount);
+                ZEPX_TK.transfer(msg.sender, busd_Amount * current_Price);
+                totalRaisedAmount = totalRaisedAmount + busd_Amount;
+            }
+        } else {
+            if (user_id == 0) {
+                Busd.transferFrom(msg.sender, Admin_Wallet, busd_Amount);
+                ZEPX_TK.transfer(
+                    referal_address,
+                    referal_amount * current_Price
+                );
+                 Zepx_Earning[referal_address] = referal_amount * current_Price;
+                ZEPX_TK.transfer(msg.sender, busd_Amount * current_Price);
+                totalRaisedAmount = totalRaisedAmount + busd_Amount;
+                Referal_Id[msg.sender] = Total_member + 1;
+                _referal_address[Total_member + 1] = msg.sender;
+                Total_member = Total_member + 1;
+            } else {
+                Busd.transferFrom(msg.sender, Admin_Wallet, busd_Amount);
+                Zepx_Earning[referal_address] = referal_amount * current_Price;
+                ZEPX_TK.transfer(
+                    referal_address,
+                    referal_amount * current_Price
+                );
+                ZEPX_TK.transfer(msg.sender, busd_Amount * current_Price);
+                totalRaisedAmount = totalRaisedAmount + busd_Amount;
+            }
+        }
+    }
 
-    function _afterTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual {}
-}
+    function StopIco() external onlyOwner {
+        icoStatus = true;
+    }
 
+    function ActivateIco() external onlyOwner {
+        icoStatus = false;
+    }
 
-pragma solidity ^0.8.4;
+    function withdraw_unsoldZEPX(uint256 ZEPX_Ammount) public onlyOwner {
+        ZEPX_TK.transfer(msg.sender, ZEPX_Ammount * 10**18);
+    }
 
-contract ZEPCOIN is ERC20 {
-    constructor() ERC20("ZEPCOIN", "ZEPX") {
-        _mint(msg.sender, 325000000000 * 10 ** decimals());
+    function change_Admin_Wallet(address _new_Admin) public onlyOwner {
+        Admin_Wallet = _new_Admin;
     }
 }
