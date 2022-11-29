@@ -186,7 +186,7 @@ contract ZEPCOIN_ICO is Ownable {
             uint256 new_id = Total_member + 1;
             Referal_Id[_user_address] = new_id;
             _referal_address[new_id] = _user_address;
-            Total_member + 1;
+            Total_member = Total_member + 1;
         } else {
             Referal_Id[_user_address] = old_id;
             _referal_address[old_id] = _user_address;
