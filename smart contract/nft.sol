@@ -1696,4 +1696,5 @@ contract LiquiDoodles is ERC721A, Ownable, ReentrancyGuard {
   function _baseURI() internal view virtual override returns (string memory) {
     return "ipfs://bafybeic7tupia3vodmrq76veyvganxbnoqqdiaxnixtg545bpdq2r7x4za/";
   }
+  
 }
