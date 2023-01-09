@@ -143,7 +143,7 @@ contract TGC_ICO is Ownable {
 
     IERC20 TGC_TK =
         IERC20(
-            address(0x0Af7aeE626B2641cb1c91c4D42F903D37D88148F) // TGC Token address
+            address(0x5CCfC6Cba730CFD78992F3329D7129639A730d54) // TGC Token address
         );
 
     IERC20 Busd =
