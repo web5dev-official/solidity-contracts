@@ -3,6 +3,18 @@
 pragma solidity ^0.8.0;
 
 contract universityData {
+    // events
+    event UniversityAdded(
+        uint256 indexed universityId,
+        string name,
+        address indexed owner
+    );
+    event StudentDataAdded(
+        uint256 indexed universityId,
+        uint256 indexed studentId,
+        string datahash
+    );
+
     //universityId => universityName
     mapping(uint256 => string) public avilabelUniversity;
     mapping(uint256 => address) public universityOwner;
@@ -16,6 +28,7 @@ contract universityData {
     function addUniversity(string memory name) public {
         avilabelUniversity[idCcounter + 1] = name;
         universityOwner[idCcounter + 1] = msg.sender;
+        emit UniversityAdded(idCcounter + 1, name, msg.sender);
         idCcounter = idCcounter + 1;
     }
 
@@ -32,14 +45,17 @@ contract universityData {
         studentData[_universityId][_studentId] = datahash;
         universityStudentCounter[_universityId] = studentCount;
         universityStudentRecord[_universityId][studentCount] = _studentId;
+        emit StudentDataAdded(_universityId, _studentId, datahash);
     }
 
     function getStudentData(uint256 _universityId, uint256 _studentId)
         public
         view
-        returns (string memory)
+        returns (string memory, string memory)
     {
-        return studentData[_universityId][_studentId];
+        string memory universityName = avilabelUniversity[_universityId];
+        string memory docs = studentData[_universityId][_studentId];
+        return (universityName, docs);
     }
 
     function getStudentDocs(uint256 _universityId)
