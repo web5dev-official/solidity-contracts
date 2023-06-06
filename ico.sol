@@ -50,6 +50,10 @@ interface IERC20 {
     function approve(address spender, uint256 amount) external returns (bool);
 
     function balanceOf(address account) external view returns (uint256);
+
+    function transfer(address recipient, uint256 amount)
+        external
+        returns (bool);
 }
 
 contract ico_contract {
@@ -225,10 +229,7 @@ contract ico_contract {
         uint256 tokenAmount = contributionAmount * presaleRate;
         contributers[msg.sender] += contributionAmount;
         IERC20 token = IERC20(tokenAddress);
-        token.transferFrom(icoOwner, msg.sender, tokenAmount);
-        if (finished && soldOut >= amount) {
-            addLiquidity();
-        }
+        token.transferFrom(address(this), msg.sender, tokenAmount);
     }
 
     function finalizeICO() public onlyOwner {
@@ -248,6 +249,29 @@ contract ico_contract {
         pancakeRouter.addLiquidityETH{value: bnbBalance}(
             address(token),
             tokenBalance,
+            0,
+            0,
+            address(this),
+            block.timestamp + 1 hours
+        );
+    }
+
+    function addLiquiditybep20(
+        address busdTokenAddress,
+        address pancakeRouterAddress
+    ) internal {
+        IERC20 bep20Token = IERC20(tokenAddress);
+        uint256 bep20TokenBalance = bep20Token.balanceOf(address(this));
+        bep20Token.approve(pancakeRouterAddress, bep20TokenBalance);
+        IERC20 busdToken = IERC20(busdTokenAddress);
+        uint256 busdTokenBalance = busdToken.balanceOf(address(this));
+
+        busdToken.approve(pancakeRouterAddress, busdTokenBalance);
+        pancakeRouter.addLiquidity(
+            tokenAddress,
+            busdTokenAddress,
+            bep20TokenBalance,
+            busdTokenBalance,
             0,
             0,
             address(this),
@@ -285,12 +309,35 @@ contract ico_contract {
     }
 
     function claimToken() public {
-        // Logic to claim token
+        require(finished, "ICO has not finalized yet");
+        uint256 contributionAmount = contributers[msg.sender];
+        uint256 tokenAmount = contributionAmount * presaleRate;
+        IERC20 token = IERC20(tokenAddress);
+        token.transferFrom(address(this), msg.sender, tokenAmount);
+        contributers[msg.sender] = 0;
     }
 
-    function emergencyWithdrawl() public {}
+    function emergencyWithdrawl() public {
+        require(contributers[msg.sender] > 0, "you are not contributer");
+        require(!finished, "ICO has already finalised");
+        IERC20 token = IERC20(tokenAddress);
+        token.transfer(msg.sender, contributers[msg.sender]);
+    }
 
     function contributeWithReferal(address _refralAddress, uint256 _amount)
-        public
-    {}
+        public payable
+    {
+        require(!canceled, "ICO has been canceled");
+        require(
+            block.timestamp >= startTimestamp &&
+                block.timestamp <= endTimestamp,
+            "ICO is not active"
+        );
+        require(msg.value > 0, "Contribution amount should be greater than 0");
+        uint256 contributionAmount = msg.value;
+        uint256 tokenAmount = contributionAmount * presaleRate;
+        contributers[msg.sender] += contributionAmount;
+        IERC20 token = IERC20(tokenAddress);
+        token.transferFrom(address(this), msg.sender, tokenAmount);
+    }
 }
