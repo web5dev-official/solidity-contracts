@@ -60,59 +60,56 @@ contract ico_contract {
     ICOManager private icoManager;
     IPancakeRouter private pancakeRouter;
     mapping(address => uint256) public contributers;
-    address tokenAddress; // token address of ico
-    address icoOwner; // token address of ico
-    uint256 soldOut; // soldOut Amount for ico
-    uint256 amount; // token amount for ico
-    uint256 presaleRate; // rate for presale
-    uint256 startTimestamp; // ico starting timestamp
-    uint256 pressaleCurrency; // presale currency type
-    uint256 endTimestamp; // ico ending timestamp
-    uint256 tokenForListing; // token for liquidity
-    uint256 refralRate; // referral rate
-    string icoCurrency; // currency selected for ICO
-    string website; // ICO website address
-    string youtube; // youtube video url
-    string info; // description
-    string facebook; // Facebook site
-    string twitter; // Twitter link
-    string github; // GitHub link
-    string telegram; // Telegram link
-    string reddit; // Reddit link
-    string instagram; // Instagram link
-    string auditedUrl; // Audited status by default false
-    string kycUrl; // KYC status by default false
-    string safuUrl; // SAFU status by default false
-    string doxxdUrl; // Doxxd status by default false
-    bool canceled; // ICO cancellation status
+    mapping(address => uint256) public referals;
+    struct icoData {
+        address tokenAddress; // token address of ico
+        address icoOwner; // token address of ico
+        uint256 amount; // token amount for ico
+        uint256 presaleRate; // rate for presale
+        uint256 startTimestamp; // ico starting timestamp
+        uint256 pressaleCurrency; // presale currency type
+        uint256 endTimestamp; // ico ending timestamp
+        uint256 tokenForListing; // token for liquidity
+        uint256 refralRate; // referral rate
+        string icoCurrency; // currency selected for ICO
+    }
+
+    struct icoUrl {
+        string website; // ICO website address
+        string logo; // ICO website address
+        string youtube; // youtube video url
+        string info; // description
+        string facebook; // Facebook site
+        string twitter; // Twitter link
+        string github; // GitHub link
+        string telegram; // Telegram link
+        string reddit; // Reddit link
+        string instagram; // Instagram link
+    }
+
+    struct kycData {
+        string auditedUrl; // Audited status by default false
+        string kycUrl; // KYC status by default false
+        string safuUrl; // SAFU status by default false
+        string doxxdUrl; // Doxxd status by default false
+    }
+
+    kycData public kyc;
+    icoData public ico;
+    icoUrl public url;
+    uint256 public soldOut; 
+    bool canceled;
     bool finished;
 
-    constructor(
-        address _tokenAddress,
-        address _pancakeRouterAddress,
-        address _owner,
-        uint256 _amount,
-        uint256 _startTimestamp,
-        uint256 _endTimestamp,
-        uint256 _refralRate,
-        string memory _website,
-        string memory _selectedCurrency
-    ) {
-        require(_tokenAddress != address(0), "Invalid token");
-        require(_amount > 0, "Amount should be greater than 0");
+    constructor(icoData memory _icoData, icoUrl memory _url) {
+        require(_icoData.tokenAddress != address(0), "Invalid token");
+        require(_icoData.amount > 0, "Amount should be greater than 0");
         require(
-            _startTimestamp > block.timestamp,
+            _icoData.startTimestamp > block.timestamp,
             "Unlock date should be in the future"
         );
-        tokenAddress = _tokenAddress;
-        pancakeRouter = IPancakeRouter(_pancakeRouterAddress);
-        icoOwner = _owner;
-        amount = _amount;
-        startTimestamp = _startTimestamp;
-        endTimestamp = _endTimestamp;
-        refralRate = _refralRate;
-        website = _website;
-        icoCurrency = _selectedCurrency;
+        ico = _icoData;
+        url = _url;
     }
 
     modifier onlyAuditer() {
@@ -129,73 +126,11 @@ contract ico_contract {
     }
 
     function isOwner() public view returns (bool) {
-        return msg.sender == icoOwner;
+        return msg.sender == ico.icoOwner;
     }
 
-    function getIcoAddressDetails() public view returns (address, address) {
-        return (tokenAddress, icoOwner);
-    }
-
-    function getIcoUintDetails()
-        public
-        view
-        returns (
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256
-        )
-    {
-        return (
-            amount,
-            soldOut,
-            presaleRate,
-            startTimestamp,
-            pressaleCurrency,
-            endTimestamp,
-            tokenForListing,
-            refralRate
-        );
-    }
-
-    function getIcoBoolDetails() public view returns (bool, bool) {
-        return (canceled, finished);
-    }
-
-    function getIcoStringDetails()
-        public
-        view
-        returns (
-            string memory,
-            string memory,
-            string memory,
-            string memory,
-            string memory,
-            string memory,
-            string memory,
-            string memory,
-            string memory,
-            string memory,
-            string memory
-        )
-    {
-        return (
-            auditedUrl,
-            kycUrl,
-            safuUrl,
-            doxxdUrl,
-            website,
-            facebook,
-            twitter,
-            github,
-            telegram,
-            reddit,
-            instagram
-        );
+    function getICOData() public view returns (icoData memory) {
+        return ico;
     }
 
     function UpdateUrl(
@@ -207,42 +142,42 @@ contract ico_contract {
         string memory _reddit,
         string memory _instagram
     ) public onlyOwner {
-        require(icoOwner == msg.sender, "invalid owner");
-        website = _websiteUrl;
-        facebook = _facebook;
-        twitter = _twitter;
-        github = _github;
-        telegram = _telegram;
-        reddit = _reddit;
-        instagram = _instagram;
+        require(ico.icoOwner == msg.sender, "invalid owner");
+        url.website = _websiteUrl;
+        url.facebook = _facebook;
+        url.twitter = _twitter;
+        url.github = _github;
+        url.telegram = _telegram;
+        url.reddit = _reddit;
+        url.instagram = _instagram;
     }
 
     function contribute() public payable {
         require(!canceled, "ICO has been canceled");
         require(
-            block.timestamp >= startTimestamp &&
-                block.timestamp <= endTimestamp,
+            block.timestamp >= ico.startTimestamp &&
+                block.timestamp <= ico.endTimestamp,
             "ICO is not active"
         );
         require(msg.value > 0, "Contribution amount should be greater than 0");
         uint256 contributionAmount = msg.value;
-        uint256 tokenAmount = contributionAmount * presaleRate;
+        uint256 tokenAmount = contributionAmount * ico.presaleRate;
         contributers[msg.sender] += contributionAmount;
-        IERC20 token = IERC20(tokenAddress);
+        IERC20 token = IERC20(ico.tokenAddress);
         token.transferFrom(address(this), msg.sender, tokenAmount);
     }
 
     function finalizeICO() public onlyOwner {
         require(!finished, "ICO has already been finalized");
-        IERC20 token = IERC20(tokenAddress);
-        token.transferFrom(icoOwner, address(this), tokenForListing);
-        token.approve(address(pancakeRouter), tokenForListing);
+        IERC20 token = IERC20(ico.tokenAddress);
+        token.transferFrom(ico.icoOwner, address(this), ico.tokenForListing);
+        token.approve(address(pancakeRouter), ico.tokenForListing);
         addLiquidity();
         finished = true;
     }
 
     function addLiquidity() internal {
-        IERC20 token = IERC20(tokenAddress);
+        IERC20 token = IERC20(ico.tokenAddress);
         uint256 tokenBalance = token.balanceOf(address(this));
         uint256 bnbBalance = address(this).balance;
         token.approve(address(pancakeRouter), tokenBalance);
@@ -260,7 +195,7 @@ contract ico_contract {
         address busdTokenAddress,
         address pancakeRouterAddress
     ) internal {
-        IERC20 bep20Token = IERC20(tokenAddress);
+        IERC20 bep20Token = IERC20(ico.tokenAddress);
         uint256 bep20TokenBalance = bep20Token.balanceOf(address(this));
         bep20Token.approve(pancakeRouterAddress, bep20TokenBalance);
         IERC20 busdToken = IERC20(busdTokenAddress);
@@ -268,7 +203,7 @@ contract ico_contract {
 
         busdToken.approve(pancakeRouterAddress, busdTokenBalance);
         pancakeRouter.addLiquidity(
-            tokenAddress,
+            ico.tokenAddress,
             busdTokenAddress,
             bep20TokenBalance,
             busdTokenBalance,
@@ -280,6 +215,7 @@ contract ico_contract {
     }
 
     function cancelICO() public onlyOwner {
+        require(!canceled, "ico is alredy canceled");
         canceled = true;
     }
 
@@ -289,55 +225,55 @@ contract ico_contract {
         string memory _doxxUrl,
         string memory _safuUrl
     ) public onlyAuditer {
-        auditedUrl = _auditUrl;
-        kycUrl = _kycUrl;
-        doxxdUrl = _doxxUrl;
-        safuUrl = _safuUrl;
+        kyc.auditedUrl = _auditUrl;
+        kyc.kycUrl = _kycUrl;
+        kyc.doxxdUrl = _doxxUrl;
+        kyc.safuUrl = _safuUrl;
     }
 
-    function getBadge()
-        public
-        view
-        returns (
-            string memory,
-            string memory,
-            string memory,
-            string memory
-        )
-    {
-        return (auditedUrl, kycUrl, doxxdUrl, safuUrl);
+    function getBadge() public view returns (kycData memory) {
+        return kyc;
     }
 
     function claimToken() public {
         require(finished, "ICO has not finalized yet");
         uint256 contributionAmount = contributers[msg.sender];
-        uint256 tokenAmount = contributionAmount * presaleRate;
-        IERC20 token = IERC20(tokenAddress);
+        uint256 tokenAmount = contributionAmount * ico.presaleRate;
+        IERC20 token = IERC20(ico.tokenAddress);
         token.transferFrom(address(this), msg.sender, tokenAmount);
         contributers[msg.sender] = 0;
+    }
+
+    function claimFund() public {
+        require(contributers[msg.sender] > 0, "you are not contributer");
+        require(!canceled, "ICO is not canceled yet");
+         IERC20 token = IERC20(ico.tokenAddress);
+        token.transfer(msg.sender, contributers[msg.sender]);
     }
 
     function emergencyWithdrawl() public {
         require(contributers[msg.sender] > 0, "you are not contributer");
         require(!finished, "ICO has already finalised");
-        IERC20 token = IERC20(tokenAddress);
+        IERC20 token = IERC20(ico.tokenAddress);
         token.transfer(msg.sender, contributers[msg.sender]);
     }
 
     function contributeWithReferal(address _refralAddress, uint256 _amount)
-        public payable
+        public
+        payable
     {
         require(!canceled, "ICO has been canceled");
         require(
-            block.timestamp >= startTimestamp &&
-                block.timestamp <= endTimestamp,
+            block.timestamp >= ico.startTimestamp &&
+                block.timestamp <= ico.endTimestamp,
             "ICO is not active"
         );
         require(msg.value > 0, "Contribution amount should be greater than 0");
         uint256 contributionAmount = msg.value;
-        uint256 tokenAmount = contributionAmount * presaleRate;
+        uint256 tokenAmount = contributionAmount * ico.presaleRate;
         contributers[msg.sender] += contributionAmount;
-        IERC20 token = IERC20(tokenAddress);
+        referals[_refralAddress] = _amount;
+        IERC20 token = IERC20(ico.tokenAddress);
         token.transferFrom(address(this), msg.sender, tokenAmount);
     }
 }
