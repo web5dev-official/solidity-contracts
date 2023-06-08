@@ -5,6 +5,32 @@ interface ICOManager {
     function getAdmin(address _admin) external view returns (bool);
 }
 
+ struct IcoData {
+        address tokenAddress;
+        address icoOwner;
+        uint256 icoAmount;
+        uint256 presaleRate;
+        uint256 startTimestamp;
+        uint256 pressaleCurrency;
+        uint256 endTimestamp;
+        uint256 tokenForListing;
+        uint256 referralRate;
+        string icoCurrency;
+    }
+
+    struct IcoUrl {
+        string website;
+        string logo;
+        string youtube;
+        string info;
+        string facebook;
+        string twitter;
+        string github;
+        string telegram;
+        string reddit;
+        string instagram;
+    }
+
 interface IPancakeRouter {
     function addLiquidity(
         address tokenA,
@@ -48,9 +74,7 @@ interface IERC20 {
     ) external returns (bool);
 
     function approve(address spender, uint256 amount) external returns (bool);
-
     function balanceOf(address account) external view returns (uint256);
-
     function transfer(address recipient, uint256 amount)
         external
         returns (bool);
@@ -61,31 +85,7 @@ contract ico_contract {
     IPancakeRouter private pancakeRouter;
     mapping(address => uint256) public contributers;
     mapping(address => uint256) public referals;
-    struct icoData {
-        address tokenAddress; // token address of ico
-        address icoOwner; // token address of ico
-        uint256 amount; // token amount for ico
-        uint256 presaleRate; // rate for presale
-        uint256 startTimestamp; // ico starting timestamp
-        uint256 pressaleCurrency; // presale currency type
-        uint256 endTimestamp; // ico ending timestamp
-        uint256 tokenForListing; // token for liquidity
-        uint256 refralRate; // referral rate
-        string icoCurrency; // currency selected for ICO
-    }
-
-    struct icoUrl {
-        string website; // ICO website address
-        string logo; // ICO website address
-        string youtube; // youtube video url
-        string info; // description
-        string facebook; // Facebook site
-        string twitter; // Twitter link
-        string github; // GitHub link
-        string telegram; // Telegram link
-        string reddit; // Reddit link
-        string instagram; // Instagram link
-    }
+     
 
     struct kycData {
         string auditedUrl; // Audited status by default false
@@ -95,18 +95,18 @@ contract ico_contract {
     }
 
     kycData public kyc;
-    icoData public ico;
-    icoUrl public url;
+    IcoData public ico;
+    IcoUrl public url;
     uint256 public soldOut; 
     bool canceled;
     bool finished;
 
-    constructor(icoData memory _icoData, icoUrl memory _url) {
+   constructor(IcoData memory _icoData, IcoUrl memory _url) {
         require(_icoData.tokenAddress != address(0), "Invalid token");
-        require(_icoData.amount > 0, "Amount should be greater than 0");
+        require(_icoData.icoAmount > 0, "Amount should be greater than 0");
         require(
             _icoData.startTimestamp > block.timestamp,
-            "Unlock date should be in the future"
+            "ico starting time should be in future"
         );
         ico = _icoData;
         url = _url;
@@ -129,7 +129,7 @@ contract ico_contract {
         return msg.sender == ico.icoOwner;
     }
 
-    function getICOData() public view returns (icoData memory) {
+    function getICOData() public view returns (IcoData memory) {
         return ico;
     }
 
@@ -247,8 +247,9 @@ contract ico_contract {
     function claimFund() public {
         require(contributers[msg.sender] > 0, "you are not contributer");
         require(!canceled, "ICO is not canceled yet");
-         IERC20 token = IERC20(ico.tokenAddress);
+        IERC20 token = IERC20(ico.tokenAddress);
         token.transfer(msg.sender, contributers[msg.sender]);
+        contributers[msg.sender] = 0;
     }
 
     function emergencyWithdrawl() public {
@@ -256,6 +257,7 @@ contract ico_contract {
         require(!finished, "ICO has already finalised");
         IERC20 token = IERC20(ico.tokenAddress);
         token.transfer(msg.sender, contributers[msg.sender]);
+        contributers[msg.sender] = 0;
     }
 
     function contributeWithReferal(address _refralAddress, uint256 _amount)
