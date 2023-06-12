@@ -5,33 +5,7 @@ interface ICOManager {
     function getAdmin(address _admin) external view returns (bool);
 }
 
- struct IcoData {
-        address tokenAddress;
-        address icoOwner;
-        uint256 icoAmount;
-        uint256 presaleRate;
-        uint256 startTimestamp;
-        uint256 pressaleCurrency;
-        uint256 endTimestamp;
-        uint256 tokenForListing;
-        uint256 referralRate;
-        string icoCurrency;
-    }
-
-    struct IcoUrl {
-        string website;
-        string logo;
-        string youtube;
-        string info;
-        string facebook;
-        string twitter;
-        string github;
-        string telegram;
-        string reddit;
-        string instagram;
-    }
-
-interface IPancakeRouter {
+interface IDEXRouter {
     function addLiquidity(
         address tokenA,
         address tokenB,
@@ -49,7 +23,7 @@ interface IPancakeRouter {
             uint256 liquidity
         );
 
-    function addLiquidityETH(
+      function addLiquidityETH(
         address token,
         uint256 amountTokenDesired,
         uint256 amountTokenMin,
@@ -63,7 +37,7 @@ interface IPancakeRouter {
             uint256 amountToken,
             uint256 amountETH,
             uint256 liquidity
-        );
+        );   
 }
 
 interface IERC20 {
@@ -74,18 +48,48 @@ interface IERC20 {
     ) external returns (bool);
 
     function approve(address spender, uint256 amount) external returns (bool);
+
     function balanceOf(address account) external view returns (uint256);
+
     function transfer(address recipient, uint256 amount)
         external
         returns (bool);
 }
 
+ struct icoData {
+        address tokenAddress; // token address of ico
+        uint256 icoAmount; // token amount for ico
+        uint256 presaleRate; // rate for presale
+        uint256 startTimestamp; // ico starting timestamp
+        uint256 endTimestamp; // ico ending timestamp
+        uint256 listingRate;
+        uint256 liquiditPer; // token percentage of liquidity
+        uint256 refralRate; // referral rate
+        uint256 softcap;
+        uint256 hardcap;
+        uint256 minBuy;
+        uint256 maxBuy;
+    }
+
+    struct icoUrl {
+        string website; // ICO website address
+        string logo; // ICO website address
+        string youtube; // youtube video url
+        string info; // description
+        string facebook; // Facebook site
+        string twitter; // Twitter link
+        string github; // GitHub link
+        string telegram; // Telegram link
+        string reddit; // Reddit link
+        string instagram; // Instagram link
+    }
+
 contract ico_contract {
     ICOManager private icoManager;
-    IPancakeRouter private pancakeRouter;
+    IDEXRouter private pancakeRouter;
     mapping(address => uint256) public contributers;
     mapping(address => uint256) public referals;
-     
+    mapping(address => bool) public whitelistAddreses;
 
     struct kycData {
         string auditedUrl; // Audited status by default false
@@ -95,21 +99,31 @@ contract ico_contract {
     }
 
     kycData public kyc;
-    IcoData public ico;
-    IcoUrl public url;
-    uint256 public soldOut; 
+    icoData public ico;
+    icoUrl public url;
+    IERC20 public token = IERC20(ico.tokenAddress);
+    IERC20 public icoCurrency = IERC20(currency);
+    IDEXRouter public dexRouter = IDEXRouter(dexRouterAddress);
+    address currency;
+    address public owner;
+    address public dexRouterAddress;
+    uint256 public soldOut;
     bool canceled;
     bool finished;
+    bool whitelist;
+    bool autoLiquidity;
 
-   constructor(IcoData memory _icoData, IcoUrl memory _url) {
+    constructor(icoData memory _icoData, icoUrl memory _url, address _router , address _currency) {
         require(_icoData.tokenAddress != address(0), "Invalid token");
         require(_icoData.icoAmount > 0, "Amount should be greater than 0");
         require(
             _icoData.startTimestamp > block.timestamp,
-            "ico starting time should be in future"
+            "Unlock date should be in the future"
         );
         ico = _icoData;
         url = _url;
+        dexRouterAddress = _router;
+        currency = _currency;
     }
 
     modifier onlyAuditer() {
@@ -126,93 +140,105 @@ contract ico_contract {
     }
 
     function isOwner() public view returns (bool) {
-        return msg.sender == ico.icoOwner;
+        return msg.sender == owner;
     }
 
-    function getICOData() public view returns (IcoData memory) {
-        return ico;
+    function checkOwner(address _owner) public view returns (bool) {
+        return _owner == owner;
     }
 
-    function UpdateUrl(
-        string memory _websiteUrl,
-        string memory _facebook,
-        string memory _twitter,
-        string memory _github,
-        string memory _telegram,
-        string memory _reddit,
-        string memory _instagram
-    ) public onlyOwner {
-        require(ico.icoOwner == msg.sender, "invalid owner");
-        url.website = _websiteUrl;
-        url.facebook = _facebook;
-        url.twitter = _twitter;
-        url.github = _github;
-        url.telegram = _telegram;
-        url.reddit = _reddit;
-        url.instagram = _instagram;
+    function getICOData()
+        external
+        view
+        returns (
+            icoData memory,
+            icoUrl memory,
+            kycData memory,
+            address,
+            bool,
+            bool,
+            bool
+        )
+    {
+        return (ico, url, kyc, owner, canceled, finished, autoLiquidity);
     }
 
-    function contribute() public payable {
+    function UpdateUrl(icoUrl memory _url) public onlyOwner {
+        url = _url;
+    }
+
+    function contribute(uint256 _amount) public {
         require(!canceled, "ICO has been canceled");
         require(
             block.timestamp >= ico.startTimestamp &&
                 block.timestamp <= ico.endTimestamp,
             "ICO is not active"
         );
-        require(msg.value > 0, "Contribution amount should be greater than 0");
-        uint256 contributionAmount = msg.value;
-        uint256 tokenAmount = contributionAmount * ico.presaleRate;
-        contributers[msg.sender] += contributionAmount;
-        IERC20 token = IERC20(ico.tokenAddress);
-        token.transferFrom(address(this), msg.sender, tokenAmount);
+        uint256 tokenAmount = _amount * ico.presaleRate;
+        icoCurrency.transferFrom(msg.sender, address(this), tokenAmount);
+        contributers[msg.sender] += _amount;
     }
 
     function finalizeICO() public onlyOwner {
         require(!finished, "ICO has already been finalized");
-        IERC20 token = IERC20(ico.tokenAddress);
-        token.transferFrom(ico.icoOwner, address(this), ico.tokenForListing);
-        token.approve(address(pancakeRouter), ico.tokenForListing);
-        addLiquidity();
+        if (autoLiquidity) {
+            addLiquidity(52);
+        } else {
+            icoCurrency.transfer(owner, ico.listingRate);
+        }
         finished = true;
     }
 
-    function addLiquidity() internal {
-        IERC20 token = IERC20(ico.tokenAddress);
-        uint256 tokenBalance = token.balanceOf(address(this));
-        uint256 bnbBalance = address(this).balance;
-        token.approve(address(pancakeRouter), tokenBalance);
-        pancakeRouter.addLiquidityETH{value: bnbBalance}(
-            address(token),
-            tokenBalance,
-            0,
-            0,
-            address(this),
-            block.timestamp + 1 hours
-        );
-    }
+   function addLiquidity(uint256 percentage) public {
+    require(percentage >= 50 && percentage <= 100, "Invalid percentage"); // Ensure the percentage is between 50 and 100
+    
+    uint256 tokenBalance = token.balanceOf(address(this));
+    uint256 tokenAmountToAdd = tokenBalance * percentage / 100; // Calculate the token amount based on the percentage
+    
+    uint256 icoCurrencyBalance = icoCurrency.balanceOf(address(this));
+    uint256 icoCurrencyAmountToAdd = icoCurrencyBalance * percentage / 100; // Calculate the ICO currency amount based on the percentage
+    
+    token.approve(
+        address(dexRouter),
+        tokenAmountToAdd
+    );
+    icoCurrency.approve(
+        address(dexRouter),
+        icoCurrencyAmountToAdd
+    );
+    dexRouter.addLiquidity(
+        ico.tokenAddress,
+        currency,
+        tokenAmountToAdd,
+        icoCurrencyAmountToAdd,
+        0,
+        0,
+        address(this),
+        block.timestamp + 1 hours
+    );
+}
 
-    function addLiquiditybep20(
-        address busdTokenAddress,
-        address pancakeRouterAddress
-    ) internal {
-        IERC20 bep20Token = IERC20(ico.tokenAddress);
-        uint256 bep20TokenBalance = bep20Token.balanceOf(address(this));
-        bep20Token.approve(pancakeRouterAddress, bep20TokenBalance);
-        IERC20 busdToken = IERC20(busdTokenAddress);
-        uint256 busdTokenBalance = busdToken.balanceOf(address(this));
-
-        busdToken.approve(pancakeRouterAddress, busdTokenBalance);
-        pancakeRouter.addLiquidity(
-            ico.tokenAddress,
-            busdTokenAddress,
-            bep20TokenBalance,
-            busdTokenBalance,
-            0,
-            0,
-            address(this),
-            block.timestamp + 1 hours
-        );
-    }
+function addLiquidityBnb(uint256 percentage) public {
+    require(percentage >= 50 && percentage <= 100, "Invalid percentage"); // Ensure the percentage is between 50 and 100
+    
+    uint256 tokenBalance = token.balanceOf(address(this));
+    uint256 tokenAmountToAdd = tokenBalance * percentage / 100; // Calculate the token amount based on the percentage
+    
+    uint256 bnbAmountToAdd = address(this).balance * percentage / 100; // Calculate the BNB amount based on the percentage
+    
+    token.approve(
+        address(dexRouter),
+        tokenAmountToAdd
+    );
+    dexRouter.addLiquidityETH{value: bnbAmountToAdd}(
+        ico.tokenAddress,
+        tokenAmountToAdd,
+        0,
+        0,
+        address(this),
+        block.timestamp + 1 hours
+    );
+}
 
     function cancelICO() public onlyOwner {
         require(!canceled, "ico is alredy canceled");
@@ -239,30 +265,39 @@ contract ico_contract {
         require(finished, "ICO has not finalized yet");
         uint256 contributionAmount = contributers[msg.sender];
         uint256 tokenAmount = contributionAmount * ico.presaleRate;
-        IERC20 token = IERC20(ico.tokenAddress);
         token.transferFrom(address(this), msg.sender, tokenAmount);
-        contributers[msg.sender] = 0;
+        contributers[msg.sender] = 0; // contribution set to 0 so user cannot claim again
     }
 
     function claimFund() public {
         require(contributers[msg.sender] > 0, "you are not contributer");
         require(!canceled, "ICO is not canceled yet");
-        IERC20 token = IERC20(ico.tokenAddress);
-        token.transfer(msg.sender, contributers[msg.sender]);
-        contributers[msg.sender] = 0;
+        icoCurrency.transfer(msg.sender, contributers[msg.sender]);
+        contributers[msg.sender] = 0; // contribution set to 0 so user cannot claim again
+    }
+
+    function changeIcoTime(uint256 _startTimestamp, uint256 _endTimestamp)
+        public
+        onlyOwner
+    {
+        require(
+            block.timestamp <= _startTimestamp &&
+                _startTimestamp <= _endTimestamp,
+            "end timestamp"
+        );
+        ico.startTimestamp = _startTimestamp;
+        ico.endTimestamp = _endTimestamp;
     }
 
     function emergencyWithdrawl() public {
         require(contributers[msg.sender] > 0, "you are not contributer");
         require(!finished, "ICO has already finalised");
-        IERC20 token = IERC20(ico.tokenAddress);
-        token.transfer(msg.sender, contributers[msg.sender]);
-        contributers[msg.sender] = 0;
+        icoCurrency.transfer(msg.sender, contributers[msg.sender]);
+        contributers[msg.sender] = 0; // contribution set to 0 so user cannot claim again
     }
 
     function contributeWithReferal(address _refralAddress, uint256 _amount)
         public
-        payable
     {
         require(!canceled, "ICO has been canceled");
         require(
@@ -270,12 +305,12 @@ contract ico_contract {
                 block.timestamp <= ico.endTimestamp,
             "ICO is not active"
         );
-        require(msg.value > 0, "Contribution amount should be greater than 0");
-        uint256 contributionAmount = msg.value;
-        uint256 tokenAmount = contributionAmount * ico.presaleRate;
-        contributers[msg.sender] += contributionAmount;
+        require(_amount > 0, "Contribution amount should be greater than 0");
+        require(
+            icoCurrency.transferFrom(msg.sender, address(this), _amount),
+            "transaction failed"
+        );
+        contributers[msg.sender] += _amount;
         referals[_refralAddress] = _amount;
-        IERC20 token = IERC20(ico.tokenAddress);
-        token.transferFrom(address(this), msg.sender, tokenAmount);
     }
 }
