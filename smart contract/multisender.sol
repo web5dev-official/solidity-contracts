@@ -13,41 +13,56 @@ interface IERC20 {
         address to,
         uint256 value
     ) external returns (bool);
-
 }
 
 contract Multisender {
-    event TokensSent(
+    event TokensSentToRecipients(
         address indexed token,
         address indexed from,
         uint256 totalAmount
     );
-    event TokensTransferred(
+    event TokensTransferredToRecipient(
         address indexed token,
         address indexed to,
         uint256 amount
     );
-  
-    function sendTo(
+    event EthSentToRecipients(address indexed from, uint256 totalAmount);
+    event EthTransferredToRecipient(address indexed to, uint256 amount);
+
+    function sendTokensToRecipients(
         address token,
         uint8 decimals,
         address[] memory recipients,
         uint256[] memory amounts
-    ) public {
+    ) external {
         require(recipients.length == amounts.length, "Invalid input");
 
         IERC20 erc20 = IERC20(token);
-        erc20.transferFrom(msg.sender, address(this), totalAmount(amounts)*10**decimals);
+        uint256 totalTokenAmount = totalAmount(amounts) * (10**uint256(decimals));
+        erc20.transferFrom(msg.sender, address(this), totalTokenAmount);
 
-        for (uint256 i = 0; i < recipients.length; i++) {
-            require(erc20.transfer(recipients[i], amounts[i]*10**decimals), "Transfer failed");
-            emit TokensTransferred(token, recipients[i], amounts[i]);
+        for (uint256 i = recipients.length; i > 0; i--) {
+            require(erc20.transfer(recipients[i - 1], amounts[i - 1] * (10**uint256(decimals))), "Transfer failed");
+            emit TokensTransferredToRecipient(token, recipients[i - 1], amounts[i - 1]);
         }
 
-        emit TokensSent(token, msg.sender, totalAmount(amounts));
+        emit TokensSentToRecipients(token, msg.sender, totalAmount(amounts));
     }
 
-    
+    function sendEthToRecipients(address[] memory recipients, uint256[] memory amounts) external payable {
+        require(recipients.length == amounts.length, "Invalid input");
+
+        uint256 totalEthAmount = totalAmount(amounts);
+        require(msg.value == totalEthAmount, "Incorrect ETH value sent");
+
+        for (uint256 i = recipients.length; i > 0; i--) {
+            payable(recipients[i - 1]).transfer(amounts[i - 1]);
+            emit EthTransferredToRecipient(recipients[i - 1], amounts[i - 1]);
+        }
+
+        emit EthSentToRecipients(msg.sender, totalEthAmount);
+    }
+
     function totalAmount(uint256[] memory amounts)
         private
         pure
